@@ -12,6 +12,9 @@ import jakarta.persistence.Id;
 import jakarta.persistence.ManyToOne;
 import lombok.Getter;
 import lombok.Setter;
+import com.mystyle.sbb.user.SiteUser;
+import java.util.Set;
+import jakarta.persistence.ManyToMany;
 
 @Getter
 @Setter
@@ -28,4 +31,12 @@ public class Answer {
 
 	@ManyToOne
 	private Question question;
+	
+	@ManyToOne
+	private SiteUser author;
+	
+	private LocalDateTime modifyDate;
+	
+    @ManyToMany
+    Set<SiteUser> voter;
 }
