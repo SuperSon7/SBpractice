@@ -35,3 +35,16 @@ out/
 
 ### VS Code ###
 .vscode/
+
+# --- Sensitive Information  ---
+.env
+
+# --- Operating System Files ---
+# Mac
+.DS_Store
+# Windows
+Thumbs.db
+
+# --- Log files ---
+*.log
+logs/

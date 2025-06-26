@@ -1,0 +1,39 @@
+spring:
+  # === 테스트 환경용 DB 설정 ===
+  # ToDO 테스트 컨테이너로 변경 요구
+  datasource:
+    url: jdbc:postgresql://localhost:5432/postgres
+    driver-class-name: org.postgresql.Driver
+    username: postgres
+    password: zsed1235!
+
+  # === 테스트 환경용 JPA 설정 ===
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+    show-sql: true
+
+  # === 테스트 환경용 Security / OAuth 2.0 더미 설정 ===
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: dummy-google-client-id # 더미 값
+            client-secret: dummy-google-client-secret # 더미 값
+            scope:
+              - email
+              - profile
+#          naver:
+#            client-id: dummy-naver-client-id # 더미 값
+#            client-secret: dummy-naver-client-secret # 더미 값
+#            redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
+#            authorization-grant-type: authorization_code
+#            scope:
+#              - name
+#              - email
+#            client-name: Naver
