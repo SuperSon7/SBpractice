@@ -16,6 +16,27 @@ env:
 jobs:
   build-and-push-to-ecr:
     runs-on: ubuntu-latest
+
+    services:
+
+      postgres:
+
+        image: postgres:15-alpine
+
+        env:
+          POSTGRES_USER: testuser
+          POSTGRES_PASSWORD: testpass
+          POSTGRES_DB: testdb
+
+        ports:
+          - 5432:5432
+        # DB가 연결을 받을 준비가 될 때까지 기다리는 옵션
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     permissions: # GitHub Actions가 AWS 자격 증명을 사용할 수 있도록 권한 부여
       contents: read
 

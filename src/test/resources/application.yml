@@ -2,15 +2,15 @@ spring:
   # === 테스트 환경용 DB 설정 ===
   # ToDO 테스트 컨테이너로 변경 요구
   datasource:
-    url: jdbc:postgresql://localhost:5432/postgres
+    # GitHub Actions의 services에서 postgres는 localhost로 접근 가능합니다.
+    url: jdbc:postgresql://localhost:5432/testdb # DB 이름을 testdb로 변경
     driver-class-name: org.postgresql.Driver
-    username: postgres
-    password: zsed1235!
+    username: testuser # 위 services에서 설정한 이름
+    password: testpass # 위 services에서 설정한 비밀번호
 
-  # === 테스트 환경용 JPA 설정 ===
   jpa:
     hibernate:
-      ddl-auto: create-drop
+      ddl-auto: create # 테스트는 매번 깨끗한 DB에서 시작
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
