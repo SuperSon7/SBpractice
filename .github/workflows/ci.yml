@@ -1,6 +1,6 @@
 # .github/workflows/ci.yml
 
-name: CI Pipeline for blog
+name: CI Pipeline - Deploy to EC2 for blog
 
 on:
   push:
@@ -74,3 +74,24 @@ jobs:
       run: |
         docker build -t ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ env.IMAGE_TAG }} .
         docker push ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ env.IMAGE_TAG }}
+
+  deploy-to-ec2:
+    needs: build-and-push-to-ecr
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Deploy to EC2 instance
+      uses: appleboy/ssh-action@master
+      with:
+        host: ${{ secrets.EC2_PUBLIC_IP }} # GitHub Secret에서 IP 주소 가져오기
+        username: ec2-user
+        key: ${{ secrets.SSH_PRIVATE_KEY }} # GitHub Secret에서 SSH 키 가져오기
+        script: |
+          
+          aws ecr get-login-password --region ${{ env.AWS_REGION }} | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com
+          
+          docker-compose -f ~/docker-compose.yml pull
+          
+          docker-compose -f ~/docker-compose.yml up -d
+          
+          docker image prune -f
