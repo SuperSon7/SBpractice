@@ -129,3 +129,6 @@ resource "aws_instance" "my_server" {
 output "instance_public_if" {
   value = aws_instance.my_server.public_ip
 }
+
+#TODO
+# 테라폼 apply 시 수동으로 깃헙 시크릿의 퍼블릭 주소 바꾸는 거 자동화
