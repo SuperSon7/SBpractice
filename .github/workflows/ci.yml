@@ -7,26 +7,57 @@ on:
   pull_request:
     branches: [ master ]
 
+permissions:
+  id-token: write # OIDC 토큰을 요청하기 위해 필수
+  contents: read  # 리포지토리 코드를 checkout 하기 위해 필수
+
 env:
   AWS_REGION: ap-northeast-2
   ECR_REPOSITORY: devvb/blog
   IMAGE_TAG: latest
 
 jobs:
+  terraform:
+    name: 'Terraform'
+    runs-on: ubuntu-latest # 버전 잘 선택해야함
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        role-to-assume: arn:aws:iam::658173955655:role/tf-sg-role
+        aws-region: ap-northeast-2
+
+    - name: Setup terraform
+      uses: hashicorp/setup-terraform@v3
+      
+    # PR일 때는 plan만 실행
+    - name: Terraform Plan
+      if: github.event_name == 'pull_request'
+      run: terraform plan -no-color
+
+    # main 브랜치에 Push되었을 때만 apply 실행
+    - name: Terraform Apply
+      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+      run: terraform apply -auto-approve
+
+# 어플리케이션 빌드 및 ECR 푸시
   build-and-push-to-ecr:
+    name: 'Build and Push to ECR'
+    # Terraform 작업이 성공해야만 실행됩니다.
+    needs: terraform
     runs-on: ubuntu-latest
 
     services:
-
       postgres:
-
         image: postgres:15-alpine
-
         env:
           POSTGRES_USER: testuser
           POSTGRES_PASSWORD: testpass
           POSTGRES_DB: testdb
-
         ports:
           - 5432:5432
         # DB가 연결을 받을 준비가 될 때까지 기다리는 옵션
@@ -36,19 +67,17 @@ jobs:
           --health-timeout 5s
           --health-retries 5
 
-    permissions: # GitHub Actions가 AWS 자격 증명을 사용할 수 있도록 권한 부여
-      contents: read
-
     steps:
-    - name: Checkout Source Code
-      uses: actions/checkout@v3
+    - name: Checkout
+      uses: actions/checkout@v4
 
     # AWS
-    - name: Configure AWS credentials
-      uses: aws-actions/configure-aws-credentials@v2
+    - name: Configure AWS Credentials via OIDC
+      uses: aws-actions/configure-aws-credentials@v4
       with:
-        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        # ECR Push 권한이 있는 역할을 지정해야 합니다.
+        # 편의상 같은 역할을 썼지만, 실제로는 ECR용 역할을 따로 만드는 것이 좋습니다.
+        role-to-assume: arn:aws:iam::658173955655:role/github-actions-ecr-push-role
         aws-region: ${{ env.AWS_REGION }}
 
     - name: Login to Amazon ECR
@@ -75,6 +104,8 @@ jobs:
         docker build -t ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ env.IMAGE_TAG }} .
         docker push ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ env.IMAGE_TAG }}
         echo "image=${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ env.IMAGE_TAG }}" >> $GITHUB_OUTPUT
+  
+  #EC2에 배포
   deploy-to-ec2:
     needs: build-and-push-to-ecr
     runs-on: ubuntu-latest
